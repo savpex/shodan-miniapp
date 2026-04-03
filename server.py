@@ -295,6 +295,8 @@ async def handle_chat(request: web.Request) -> web.Response:
 
     user_message = data.get("message", "").strip()
     image_b64 = data.get("image")  # base64 string or None
+    log.info("Chat from user %s: text=%d chars, image=%s",
+             user_id, len(user_message), f"{len(image_b64)} chars" if image_b64 else "none")
 
     if not user_message and not image_b64:
         return web.json_response({"error": "No message"}, status=400)

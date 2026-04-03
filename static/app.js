@@ -190,61 +190,27 @@
     photoInput.addEventListener("change", (e) => {
         const file = e.target.files[0];
         if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+            addMessage("error", "Photo too large (max 5MB).");
+            return;
+        }
 
         const reader = new FileReader();
         reader.onload = function (ev) {
             const dataUrl = ev.target.result;
-            const base64raw = dataUrl.split(",")[1];
-            if (!base64raw) {
+            const idx = dataUrl.indexOf(",");
+            if (idx < 0) {
                 addMessage("error", "Failed to read photo.");
                 return;
             }
-
-            // Try to resize via canvas, fallback to raw if WebView blocks it
-            try {
-                const img = new Image();
-                img.onload = function () {
-                    try {
-                        const MAX = 800;
-                        let w = img.width;
-                        let h = img.height;
-                        if (w > MAX || h > MAX) {
-                            if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-                            else { w = Math.round(w * MAX / h); h = MAX; }
-                        }
-                        const canvas = document.createElement("canvas");
-                        canvas.width = w;
-                        canvas.height = h;
-                        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-                        const resized = canvas.toDataURL("image/jpeg", 0.75);
-                        const resizedB64 = resized.split(",")[1];
-                        if (resizedB64 && resizedB64.length > 100) {
-                            currentPhoto = resizedB64;
-                            previewImg.src = resized;
-                        } else {
-                            currentPhoto = base64raw;
-                            previewImg.src = dataUrl;
-                        }
-                    } catch (_) {
-                        currentPhoto = base64raw;
-                        previewImg.src = dataUrl;
-                    }
-                    photoPreview.hidden = false;
-                    updateSendButton();
-                };
-                img.onerror = function () {
-                    currentPhoto = base64raw;
-                    previewImg.src = dataUrl;
-                    photoPreview.hidden = false;
-                    updateSendButton();
-                };
-                img.src = dataUrl;
-            } catch (_) {
-                currentPhoto = base64raw;
-                previewImg.src = dataUrl;
-                photoPreview.hidden = false;
-                updateSendButton();
-            }
+            currentPhoto = dataUrl.substring(idx + 1);
+            previewImg.src = dataUrl;
+            photoPreview.hidden = false;
+            updateSendButton();
+            console.log("[SHODAN] Photo loaded, base64 length:", currentPhoto.length);
+        };
+        reader.onerror = function () {
+            addMessage("error", "Failed to read photo file.");
         };
         reader.readAsDataURL(file);
         photoInput.value = "";
