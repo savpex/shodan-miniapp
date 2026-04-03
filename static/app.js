@@ -163,6 +163,8 @@
             // Only send model for text; photos always use server-side vision model
             if (!photoData) body.model = modelSelect.value;
 
+            console.log("[SHODAN] Sending:", { hasText: !!text, hasPhoto: !!photoData, photoLen: photoData ? photoData.length : 0 });
+
             const result = await api("/api/chat", body);
 
             removeTypingIndicator();
@@ -189,31 +191,60 @@
         const file = e.target.files[0];
         if (!file) return;
 
-        // Resize image before sending (max 1024px, JPEG 85%)
         const reader = new FileReader();
         reader.onload = function (ev) {
-            const img = new Image();
-            img.onload = function () {
-                const MAX = 1024;
-                let w = img.width;
-                let h = img.height;
-                if (w > MAX || h > MAX) {
-                    if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-                    else { w = Math.round(w * MAX / h); h = MAX; }
-                }
-                const canvas = document.createElement("canvas");
-                canvas.width = w;
-                canvas.height = h;
-                const ctx = canvas.getContext("2d");
-                ctx.drawImage(img, 0, 0, w, h);
-                const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-                currentPhoto = dataUrl.split(",")[1]; // Remove data:image/jpeg;base64, prefix
+            const dataUrl = ev.target.result;
+            const base64raw = dataUrl.split(",")[1];
+            if (!base64raw) {
+                addMessage("error", "Failed to read photo.");
+                return;
+            }
 
+            // Try to resize via canvas, fallback to raw if WebView blocks it
+            try {
+                const img = new Image();
+                img.onload = function () {
+                    try {
+                        const MAX = 800;
+                        let w = img.width;
+                        let h = img.height;
+                        if (w > MAX || h > MAX) {
+                            if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+                            else { w = Math.round(w * MAX / h); h = MAX; }
+                        }
+                        const canvas = document.createElement("canvas");
+                        canvas.width = w;
+                        canvas.height = h;
+                        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+                        const resized = canvas.toDataURL("image/jpeg", 0.75);
+                        const resizedB64 = resized.split(",")[1];
+                        if (resizedB64 && resizedB64.length > 100) {
+                            currentPhoto = resizedB64;
+                            previewImg.src = resized;
+                        } else {
+                            currentPhoto = base64raw;
+                            previewImg.src = dataUrl;
+                        }
+                    } catch (_) {
+                        currentPhoto = base64raw;
+                        previewImg.src = dataUrl;
+                    }
+                    photoPreview.hidden = false;
+                    updateSendButton();
+                };
+                img.onerror = function () {
+                    currentPhoto = base64raw;
+                    previewImg.src = dataUrl;
+                    photoPreview.hidden = false;
+                    updateSendButton();
+                };
+                img.src = dataUrl;
+            } catch (_) {
+                currentPhoto = base64raw;
                 previewImg.src = dataUrl;
                 photoPreview.hidden = false;
                 updateSendButton();
-            };
-            img.src = ev.target.result;
+            }
         };
         reader.readAsDataURL(file);
         photoInput.value = "";
