@@ -52,7 +52,7 @@ _SYSTEM_PROMPT = (
 )
 
 _OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-_DEFAULT_MODEL = "qwen/qwen-2.5-72b-instruct"
+_DEFAULT_MODEL = "stepfun/step-3.5-flash:free"
 _VISION_MODEL = "qwen/qwen-2.5-vl-72b-instruct"
 
 

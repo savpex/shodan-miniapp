@@ -141,6 +141,9 @@
         isProcessing = true;
         updateSendButton();
 
+        // Save photo BEFORE clearing
+        const photoData = currentPhoto;
+
         // Show user message
         const displayText = text || "[Photo]";
         addMessage("user", displayText);
@@ -156,8 +159,9 @@
         try {
             const body = {};
             if (text) body.message = text;
-            if (currentPhoto) body.image = currentPhoto;
-            body.model = modelSelect.value;
+            if (photoData) body.image = photoData;
+            // Only send model for text; photos always use server-side vision model
+            if (!photoData) body.model = modelSelect.value;
 
             const result = await api("/api/chat", body);
 
@@ -173,7 +177,6 @@
             addMessage("error", err.message);
         } finally {
             isProcessing = false;
-            currentPhoto = null;
             updateSendButton();
         }
     }
@@ -251,7 +254,9 @@
         recognition.onerror = (event) => {
             isRecording = false;
             voiceBtn.classList.remove("recording");
-            if (event.error !== "no-speech" && event.error !== "aborted") {
+            if (event.error === "network") {
+                addMessage("system", "Voice: network error. Try Chrome on Android or desktop.");
+            } else if (event.error !== "no-speech" && event.error !== "aborted") {
                 addMessage("system", `Voice error: ${event.error}`);
             }
         };

@@ -359,6 +359,8 @@ body {
 #tab-settings {
     padding: 16px 12px;
     gap: 12px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .settings-card {
@@ -543,8 +545,6 @@ body {
     font-size: 12px;
     line-height: 1.7;
     color: var(--text-dim);
-    max-height: 400px;
-    overflow-y: auto;
 }
 
 .eula-text strong {
