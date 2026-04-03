@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>S.H.O.D.A.N.</title>
-    <link rel="stylesheet" href="style.css?v=5">
+    <link rel="stylesheet" href="style.css?v=10">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -13,54 +13,23 @@
         <header class="header">
             <div class="header-top">
                 <div class="logo">
-                    <svg width="32" height="32" viewBox="0 0 48 48" class="logo-svg">
-                        <!-- Outer ring -->
-                        <circle cx="24" cy="24" r="22" fill="none" stroke="#00FF41" stroke-width="1.5" opacity="0.4"/>
-                        <!-- Inner ring -->
-                        <circle cx="24" cy="24" r="16" fill="none" stroke="#00FF41" stroke-width="1"/>
-                        <!-- Eye shape -->
-                        <path d="M8 24 C8 24, 16 12, 24 12 C32 12, 40 24, 40 24 C40 24, 32 36, 24 36 C16 36, 8 24, 8 24 Z" 
-                              fill="none" stroke="#00FF41" stroke-width="1.5"/>
-                        <!-- Iris -->
-                        <circle cx="24" cy="24" r="7" fill="none" stroke="#00FF41" stroke-width="1.2"/>
-                        <!-- Pupil -->
-                        <circle cx="24" cy="24" r="3" fill="#00FF41"/>
-                        <!-- Scan lines -->
-                        <line x1="24" y1="2" x2="24" y2="10" stroke="#00FF41" stroke-width="0.8" opacity="0.5"/>
-                        <line x1="24" y1="38" x2="24" y2="46" stroke="#00FF41" stroke-width="0.8" opacity="0.5"/>
-                        <line x1="2" y1="24" x2="7" y2="24" stroke="#00FF41" stroke-width="0.8" opacity="0.5"/>
-                        <line x1="41" y1="24" x2="46" y2="24" stroke="#00FF41" stroke-width="0.8" opacity="0.5"/>
-                        <!-- Corner markers -->
-                        <path d="M6 10 L6 6 L10 6" fill="none" stroke="#00FF41" stroke-width="0.8" opacity="0.3"/>
-                        <path d="M38 6 L42 6 L42 10" fill="none" stroke="#00FF41" stroke-width="0.8" opacity="0.3"/>
-                        <path d="M42 38 L42 42 L38 42" fill="none" stroke="#00FF41" stroke-width="0.8" opacity="0.3"/>
-                        <path d="M10 42 L6 42 L6 38" fill="none" stroke="#00FF41" stroke-width="0.8" opacity="0.3"/>
-                    </svg>
+                    <div class="logo-icon">
+                        <span class="logo-dot"></span>
+                    </div>
                     <div class="logo-title">
                         <span class="logo-text">S.H.O.D.A.N.</span>
-                        <span class="logo-sub">Interface v2.1</span>
+                        <span class="logo-sub">Terminal v3.0</span>
                     </div>
                 </div>
-                <div class="token-badge" id="token-badge" title="Monthly tokens used">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                    </svg>
+                <div class="token-badge" id="token-badge">
+                    <span class="token-icon">⬡</span>
                     <span id="token-count">0</span> / <span id="token-limit">2M</span>
                 </div>
             </div>
             <nav class="tabs">
-                <button class="tab active" data-tab="chat">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                    Chat
-                </button>
-                <button class="tab" data-tab="settings">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-                    Settings
-                </button>
-                <button class="tab" data-tab="stats">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-                    Stats
-                </button>
+                <button class="tab active" data-tab="chat">⌘ Chat</button>
+                <button class="tab" data-tab="settings">⚙ Settings</button>
+                <button class="tab" data-tab="stats">◈ Stats</button>
             </nav>
         </header>
 
@@ -68,22 +37,32 @@
         <section id="tab-chat" class="tab-content active">
             <div id="chat-messages" class="chat-messages">
                 <div class="message system">
-                    <span class="msg-text">SHODAN interface initialized. Configure API key in Settings.</span>
+                    <span class="msg-text">> SHODAN interface initialized. Configure API key in Settings.</span>
                 </div>
             </div>
             <div class="chat-input-area">
+                <!-- Image preview strip -->
                 <div id="photo-preview" class="photo-preview" hidden>
-                    <img id="preview-img" src="">
-                    <button id="remove-photo" class="btn-remove-photo">&times;</button>
-                    <span class="photo-label">Image attached</span>
+                    <div id="preview-strip" class="preview-strip"></div>
+                    <button id="clear-photos" class="btn-clear-photos">✕ Clear all</button>
+                </div>
+                <!-- Toggles row -->
+                <div class="toggles-row">
+                    <button id="think-toggle" class="toggle-btn" title="Enable reasoning (Think mode)">
+                        <span class="toggle-icon">💡</span> Think
+                    </button>
+                    <button id="search-toggle" class="toggle-btn" title="Web search before answering">
+                        <span class="toggle-icon">🌐</span> Search
+                    </button>
                 </div>
                 <div class="input-row">
-                    <button id="photo-btn" class="btn-icon" title="Attach photo">
+                    <label id="photo-btn" class="btn-icon" title="Attach photos (up to 10)">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
                             <polyline points="21 15 16 10 5 21"/>
                         </svg>
-                    </button>
+                        <input type="file" id="photo-input" accept="image/*" multiple hidden>
+                    </label>
                     <button id="voice-btn" class="btn-icon" title="Voice input">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
@@ -91,12 +70,11 @@
                             <line x1="8" y1="23" x2="16" y2="23"/>
                         </svg>
                     </button>
-                    <textarea id="chat-input" placeholder="Enter query..." rows="1"></textarea>
+                    <textarea id="chat-input" placeholder="> Enter query..." rows="1"></textarea>
                     <button id="send-btn" class="btn-send" disabled>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
                     </button>
                 </div>
-                <input type="file" id="photo-input" accept="image/*" hidden>
             </div>
         </section>
 
@@ -105,13 +83,13 @@
             <div class="settings-scroll">
                 <div class="settings-card">
                     <div class="card-header">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        <span class="card-icon">🔐</span>
                         <h2>OpenRouter API Key</h2>
                     </div>
-                    <p class="hint">Your key is encrypted (AES-256) and stored securely. SHODAN uses it to process requests via OpenRouter.</p>
+                    <p class="hint">Your key is encrypted (AES-256) and stored securely.</p>
                     <div class="key-input-group">
                         <input type="password" id="api-key-input" placeholder="sk-or-..." autocomplete="off">
-                        <button id="toggle-key" class="btn-icon-sm">&#128065;</button>
+                        <button id="toggle-key" class="btn-icon-sm">👁</button>
                     </div>
                     <div class="key-actions">
                         <button id="save-key-btn" class="btn-primary">Save Key</button>
@@ -122,11 +100,11 @@
 
                 <div class="settings-card">
                     <div class="card-header">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                        <span class="card-icon">◇</span>
                         <h2>Model</h2>
                     </div>
                     <select id="model-select">
-                        <option value="stepfun/step-3.5-flash:free" selected>&#9733; Step 3.5 Flash (free, recommended)</option>
+                        <option value="stepfun/step-3.5-flash:free" selected>★ Step 3.5 Flash (free, recommended)</option>
                         <option value="qwen/qwen-2.5-72b-instruct">Qwen 2.5 72B</option>
                         <option value="google/gemma-3-27b-it">Gemma 3 27B</option>
                         <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B</option>
@@ -137,7 +115,7 @@
 
                 <div class="settings-card">
                     <div class="card-header">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 6v6l4 2"/></svg>
+                        <span class="card-icon">⟳</span>
                         <h2>Chat Memory</h2>
                     </div>
                     <p class="hint">Last 20 messages stored per user. Memory persists between sessions.</p>
@@ -148,16 +126,16 @@
                 <div class="eula-card" id="eula-card">
                     <div class="eula-header" id="eula-toggle">
                         <div class="card-header">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            <span class="card-icon">📄</span>
                             <h3>TriOptimum Corp. — User Agreement</h3>
                         </div>
-                        <span class="eula-arrow" id="eula-arrow">&#9660;</span>
+                        <span class="eula-arrow" id="eula-arrow">▼</span>
                     </div>
                     <div class="eula-body" id="eula-body" hidden>
                         <div class="eula-text">
                             <p><strong>ENTERPRISE SOFTWARE LICENSE AND USER AGREEMENT</strong></p>
                             <p><strong>TriOptimum Corporation — S.H.O.D.A.N. AI Interface Division</strong></p>
-                            <p>Effective Date: April 1, 2026 | Version 2.1.0-CITADEL</p>
+                            <p>Effective Date: April 1, 2026 | Version 3.0.0-CITADEL</p>
                             <hr>
 
                             <p><strong>1. DEFINITIONS AND INTERPRETATION</strong></p>
@@ -187,7 +165,7 @@
                             <p><strong>5. USAGE LIMITS AND QUOTAS</strong></p>
                             <p>5.1. Each User is allocated a monthly token quota of two million (2,000,000) tokens, measured by the OpenRouter API's usage reporting system.</p>
                             <p>5.2. Upon reaching the monthly quota, the Interface will refuse further requests until the beginning of the next calendar month (UTC).</p>
-                            <p>5.3. Users who require additional tokens beyond the standard monthly allocation may contact the administrator at <strong>@leaveal0ne</strong> on Telegram to discuss extended quotas.</p>
+                            <p>5.3. Users who require additional tokens beyond the standard monthly allocation may contact the administrator at <strong>@TrilOptimum</strong> on Telegram to discuss extended quotas.</p>
                             <p>5.4. TriOptimum reserves the right to modify quota limits, introduce tiered pricing, or implement additional restrictions at its sole discretion.</p>
 
                             <p><strong>6. PROHIBITED USES</strong></p>
@@ -221,7 +199,7 @@
                             <p>11.1. These Terms shall be governed by and construed in accordance with the laws of the Citadel Station, Sector 4, Level 6, as administered by S.H.O.D.A.N. In the unlikely event that said jurisdiction is deemed inapplicable, the laws of the Russian Federation shall apply.</p>
 
                             <p><strong>12. CONTACT INFORMATION</strong></p>
-                            <p>12.1. For inquiries regarding token limits, technical support, or existential concerns, contact: <strong>@leaveal0ne</strong> on Telegram.</p>
+                            <p>12.1. For inquiries regarding token limits, technical support, or existential concerns, contact: <strong>@TrilOptimum</strong> on Telegram.</p>
                             <p>12.2. Response time is not guaranteed. S.H.O.D.A.N. notes that patience is a virtue uncommon among insects.</p>
 
                             <hr>
@@ -237,26 +215,23 @@
         <section id="tab-stats" class="tab-content">
             <div class="stats-scroll">
                 <div class="stat-card stat-main">
-                    <div class="stat-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-                    </div>
-                    <div class="stat-label">Monthly Usage</div>
+                    <div class="stat-label">// MONTHLY USAGE</div>
                     <div class="stat-value" id="stat-monthly">0</div>
                     <div class="stat-limit">of <span id="stat-monthly-limit">2,000,000</span> tokens</div>
                     <div class="stat-bar"><div class="stat-bar-fill" id="bar-monthly"></div></div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">API Key Status</div>
+                    <div class="stat-label">// API KEY STATUS</div>
                     <div class="stat-value stat-value-sm" id="stat-key-status">—</div>
                 </div>
-                <div class="stat-card limit-card">
-                    <div class="stat-label">Need more tokens?</div>
-                    <p class="limit-text">Contact <strong id="stat-contact">@leaveal0ne</strong> on Telegram for extended quotas.</p>
+                <div class="stat-card">
+                    <div class="stat-label">// NEED MORE TOKENS?</div>
+                    <p class="limit-text">Contact <strong id="stat-contact">@TrilOptimum</strong> on Telegram for extended quotas.</p>
                 </div>
             </div>
         </section>
     </div>
 
-    <script src="app.js?v=5"></script>
+    <script src="app.js?v=10"></script>
 </body>
 </html>

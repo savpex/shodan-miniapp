@@ -1,3 +1,4 @@
 aiohttp==3.10.11
 httpx==0.28.1
 cryptography==44.0.0
+duckduckgo-search==7.5.1

@@ -7,7 +7,7 @@ Features:
 - Voice input via browser Web Speech API (no server STT needed)
 - Per-user 20-message memory (SQLite)
 - Monthly token limit (2M tokens)
-- Contact @leaveal0ne for limit increase
+- Contact @TrilOptimum for limit increase
 """
 import asyncio
 import hashlib
@@ -23,6 +23,7 @@ from urllib.parse import parse_qsl
 import httpx
 from aiohttp import web
 from cryptography.fernet import Fernet
+from duckduckgo_search import DDGS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 log = logging.getLogger("shodan-webapp")
@@ -37,7 +38,7 @@ FERNET_KEY_PATH = DATA_DIR / "webapp.key"
 
 # Token limits — monthly only
 MONTHLY_TOKEN_LIMIT = 2_000_000
-LIMIT_CONTACT = "@leaveal0ne"
+LIMIT_CONTACT = "@TrilOptimum"
 
 # Per-user chat memory
 MAX_MEMORY_MESSAGES = 20
@@ -294,16 +295,35 @@ async def handle_chat(request: web.Request) -> web.Response:
         }, status=429)
 
     user_message = data.get("message", "").strip()
-    image_b64 = data.get("image")  # base64 string or None
-    log.info("Chat from user %s: text=%d chars, image=%s",
-             user_id, len(user_message), f"{len(image_b64)} chars" if image_b64 else "none")
+    images_b64 = data.get("images") or []  # list of base64 strings
+    # Backward compat: single "image" field
+    if not images_b64 and data.get("image"):
+        images_b64 = [data["image"]]
+    use_think = data.get("think", False)
+    use_search = data.get("search", False)
 
-    if not user_message and not image_b64:
+    log.info("Chat from user %s: text=%d chars, images=%d, think=%s, search=%s",
+             user_id, len(user_message), len(images_b64), use_think, use_search)
+
+    if not user_message and not images_b64:
         return web.json_response({"error": "No message"}, status=400)
 
     # Save user message to memory
-    display_msg = user_message or "[Photo]"
+    display_msg = user_message or f"[Photo x{len(images_b64)}]"
     _add_memory(user_id, "user", display_msg)
+
+    # Web search: prepend results as context
+    search_context = ""
+    if use_search and user_message:
+        try:
+            with DDGS() as ddgs:
+                results = list(ddgs.text(user_message, max_results=5))
+            if results:
+                search_context = "Результаты веб-поиска:\n" + "\n".join(
+                    f"- {r['title']}: {r['body']}" for r in results
+                ) + "\n\nИспользуй эту информацию для ответа.\n\n"
+        except Exception as e:
+            log.warning("Web search failed: %s", e)
 
     # Build messages with per-user memory
     memory_msgs = _get_memory(user_id)[:-1]  # Exclude the one we just added
@@ -311,37 +331,43 @@ async def handle_chat(request: web.Request) -> web.Response:
     messages.extend(memory_msgs)
 
     # Build user content (text or multimodal)
-    if image_b64:
+    if images_b64:
         user_content = []
-        if image_b64:
+        for img in images_b64[:10]:  # Max 10 images
             user_content.append({
                 "type": "image_url",
-                "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"},
+                "image_url": {"url": f"data:image/jpeg;base64,{img}"},
             })
         if user_message:
-            user_content.append({"type": "text", "text": user_message})
+            user_content.append({"type": "text", "text": search_context + user_message})
         else:
-            user_content.append({"type": "text", "text": "Describe this image in detail."})
+            # No text with photo — ask user what they want
+            user_content.append({"type": "text", "text": "Пользователь отправил изображение без текста. Спроси, что он хочет с ним сделать."})
         messages.append({"role": "user", "content": user_content})
         model = data.get("model", _VISION_MODEL)
     else:
-        messages.append({"role": "user", "content": user_message})
+        messages.append({"role": "user", "content": search_context + user_message})
         model = data.get("model", _DEFAULT_MODEL)
 
+    # Build request payload
+    request_body = {
+        "model": model,
+        "messages": messages,
+        "max_tokens": 2048,
+        "temperature": 0.8,
+    }
+    if use_think:
+        request_body["reasoning"] = {"effort": "high"}
+
     try:
-        async with httpx.AsyncClient(timeout=90) as client:
+        async with httpx.AsyncClient(timeout=120) as client:
             resp = await client.post(
                 _OPENROUTER_URL,
                 headers={
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json",
                 },
-                json={
-                    "model": model,
-                    "messages": messages,
-                    "max_tokens": 2048,
-                    "temperature": 0.8,
-                },
+                json=request_body,
             )
             resp.raise_for_status()
             result = resp.json()
@@ -391,7 +417,7 @@ async def handle_stats(request: web.Request) -> web.Response:
 
 def create_app() -> web.Application:
     _init_db()
-    app = web.Application(client_max_size=10 * 1024 * 1024)  # 10MB for photos
+    app = web.Application(client_max_size=50 * 1024 * 1024)  # 50MB for multi-image
 
     @web.middleware
     async def cors_middleware(request, handler):

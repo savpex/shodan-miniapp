@@ -1,4 +1,4 @@
-/* S.H.O.D.A.N. Mini App — Frontend Logic */
+/* S.H.O.D.A.N. Terminal v3 — Multi-image, Think, Search */
 (function () {
     "use strict";
 
@@ -8,8 +8,8 @@
     if (tg) {
         tg.ready();
         tg.expand();
-        tg.setHeaderColor("#0D1117");
-        tg.setBackgroundColor("#0D1117");
+        tg.setHeaderColor("#191919");
+        tg.setBackgroundColor("#191919");
     }
 
     // ── DOM elements ─────────────────────────────────────────────────────
@@ -22,10 +22,12 @@
     const photoBtn = $("#photo-btn");
     const photoInput = $("#photo-input");
     const photoPreview = $("#photo-preview");
-    const previewImg = $("#preview-img");
-    const removePhoto = $("#remove-photo");
+    const previewStrip = $("#preview-strip");
+    const clearPhotosBtn = $("#clear-photos");
     const voiceBtn = $("#voice-btn");
     const tokenCount = $("#token-count");
+    const thinkToggle = $("#think-toggle");
+    const searchToggle = $("#search-toggle");
     const apiKeyInput = $("#api-key-input");
     const toggleKey = $("#toggle-key");
     const saveKeyBtn = $("#save-key-btn");
@@ -38,12 +40,15 @@
     const eulaArrow = $("#eula-arrow");
 
     // State
-    let currentPhoto = null; // base64 string
+    let photos = []; // array of { base64, dataUrl }
+    const MAX_PHOTOS = 10;
     let isProcessing = false;
     let hasKey = false;
+    let thinkEnabled = false;
+    let searchEnabled = false;
 
     // ── API helper ───────────────────────────────────────────────────────
-    const API_BASE = "";  // Same origin
+    const API_BASE = "";
 
     async function api(endpoint, body = {}) {
         body.initData = initData;
@@ -67,7 +72,6 @@
             tab.classList.add("active");
             const target = tab.dataset.tab;
             $(`#tab-${target}`).classList.add("active");
-
             if (target === "stats") loadStats();
         });
     });
@@ -109,12 +113,11 @@
 
     function updateSendButton() {
         const hasText = chatInput.value.trim().length > 0;
-        sendBtn.disabled = isProcessing || (!hasText && !currentPhoto);
+        sendBtn.disabled = isProcessing || (!hasText && photos.length === 0);
     }
 
     chatInput.addEventListener("input", () => {
         updateSendButton();
-        // Auto-resize
         chatInput.style.height = "auto";
         chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + "px";
     });
@@ -132,26 +135,30 @@
         if (isProcessing) return;
 
         const text = chatInput.value.trim();
-        if (!text && !currentPhoto) return;
+        if (!text && photos.length === 0) return;
         if (!hasKey) {
-            addMessage("error", "Please configure your API key in Settings first.");
+            addMessage("error", "> ERROR: Configure API key in Settings first.");
             return;
         }
 
         isProcessing = true;
         updateSendButton();
 
-        // Save photo BEFORE clearing
-        const photoData = currentPhoto;
+        // Save photos BEFORE clearing
+        const photoDataArr = photos.map((p) => p.base64);
+        const photoCount = photos.length;
 
         // Show user message
-        const displayText = text || "[Photo]";
+        let displayText = text || "";
+        if (photoCount > 0) {
+            displayText += (displayText ? " " : "") + `[${photoCount} image${photoCount > 1 ? "s" : ""}]`;
+        }
         addMessage("user", displayText);
 
         // Clear input
         chatInput.value = "";
         chatInput.style.height = "auto";
-        clearPhoto();
+        clearAllPhotos();
 
         // Show typing
         addTypingIndicator();
@@ -159,71 +166,122 @@
         try {
             const body = {};
             if (text) body.message = text;
-            if (photoData) body.image = photoData;
-            // Only send model for text; photos always use server-side vision model
-            if (!photoData) body.model = modelSelect.value;
+            if (photoDataArr.length > 0) body.images = photoDataArr;
+            if (!photoDataArr.length) body.model = modelSelect.value;
+            if (thinkEnabled) body.think = true;
+            if (searchEnabled) body.search = true;
 
-            console.log("[SHODAN] Sending:", { hasText: !!text, hasPhoto: !!photoData, photoLen: photoData ? photoData.length : 0 });
+            console.log("[SHODAN] Sending:", {
+                hasText: !!text,
+                photos: photoDataArr.length,
+                think: thinkEnabled,
+                search: searchEnabled,
+            });
 
             const result = await api("/api/chat", body);
 
             removeTypingIndicator();
             addMessage("assistant", result.content, result.tokens_used ? `${result.tokens_used} tokens` : null);
 
-            // Update token badge
             if (result.usage) {
                 updateTokenBadge(result.usage.monthly, result.usage.monthly_limit);
             }
         } catch (err) {
             removeTypingIndicator();
-            addMessage("error", err.message);
+            addMessage("error", "> " + err.message);
         } finally {
             isProcessing = false;
             updateSendButton();
         }
     }
 
-    // ── Photo handling ───────────────────────────────────────────────────
-
-    photoBtn.addEventListener("click", () => photoInput.click());
+    // ── Multi-photo handling ─────────────────────────────────────────────
 
     photoInput.addEventListener("change", (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        if (file.size > 5 * 1024 * 1024) {
-            addMessage("error", "Photo too large (max 5MB).");
+        const files = Array.from(e.target.files);
+        if (!files.length) return;
+
+        const remaining = MAX_PHOTOS - photos.length;
+        if (remaining <= 0) {
+            addMessage("system", `> Max ${MAX_PHOTOS} images allowed.`);
+            photoInput.value = "";
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = function (ev) {
-            const dataUrl = ev.target.result;
-            const idx = dataUrl.indexOf(",");
-            if (idx < 0) {
-                addMessage("error", "Failed to read photo.");
+        const toProcess = files.slice(0, remaining);
+        if (files.length > remaining) {
+            addMessage("system", `> Only ${remaining} more image(s) can be added (max ${MAX_PHOTOS}).`);
+        }
+
+        toProcess.forEach((file) => {
+            if (file.size > 5 * 1024 * 1024) {
+                addMessage("error", `> File "${file.name}" too large (max 5MB). Skipped.`);
                 return;
             }
-            currentPhoto = dataUrl.substring(idx + 1);
-            previewImg.src = dataUrl;
-            photoPreview.hidden = false;
-            updateSendButton();
-            console.log("[SHODAN] Photo loaded, base64 length:", currentPhoto.length);
-        };
-        reader.onerror = function () {
-            addMessage("error", "Failed to read photo file.");
-        };
-        reader.readAsDataURL(file);
+            const reader = new FileReader();
+            reader.onload = function (ev) {
+                const dataUrl = ev.target.result;
+                const idx = dataUrl.indexOf(",");
+                if (idx < 0) return;
+                const base64 = dataUrl.substring(idx + 1);
+                photos.push({ base64, dataUrl });
+                renderPhotoPreview();
+                updateSendButton();
+                console.log("[SHODAN] Photo added, total:", photos.length);
+            };
+            reader.readAsDataURL(file);
+        });
+
         photoInput.value = "";
     });
 
-    removePhoto.addEventListener("click", clearPhoto);
+    clearPhotosBtn.addEventListener("click", clearAllPhotos);
 
-    function clearPhoto() {
-        currentPhoto = null;
-        previewImg.src = "";
-        photoPreview.hidden = true;
+    function clearAllPhotos() {
+        photos = [];
+        renderPhotoPreview();
         updateSendButton();
     }
+
+    function removePhotoAt(index) {
+        photos.splice(index, 1);
+        renderPhotoPreview();
+        updateSendButton();
+    }
+
+    function renderPhotoPreview() {
+        previewStrip.innerHTML = "";
+        if (photos.length === 0) {
+            photoPreview.hidden = true;
+            return;
+        }
+        photoPreview.hidden = false;
+        photos.forEach((p, i) => {
+            const thumb = document.createElement("div");
+            thumb.className = "preview-thumb";
+            const img = document.createElement("img");
+            img.src = p.dataUrl;
+            const btn = document.createElement("button");
+            btn.className = "thumb-remove";
+            btn.textContent = "✕";
+            btn.addEventListener("click", () => removePhotoAt(i));
+            thumb.appendChild(img);
+            thumb.appendChild(btn);
+            previewStrip.appendChild(thumb);
+        });
+    }
+
+    // ── Think & Search toggles ───────────────────────────────────────────
+
+    thinkToggle.addEventListener("click", () => {
+        thinkEnabled = !thinkEnabled;
+        thinkToggle.classList.toggle("active", thinkEnabled);
+    });
+
+    searchToggle.addEventListener("click", () => {
+        searchEnabled = !searchEnabled;
+        searchToggle.classList.toggle("active", searchEnabled);
+    });
 
     // ── Voice input (Web Speech API) ─────────────────────────────────────
 
@@ -252,16 +310,16 @@
             isRecording = false;
             voiceBtn.classList.remove("recording");
             if (event.error === "network") {
-                addMessage("system", "Voice: network error. Try Chrome on Android or desktop.");
+                addMessage("system", "> Voice: network error. Try Chrome on Android or desktop.");
             } else if (event.error !== "no-speech" && event.error !== "aborted") {
-                addMessage("system", `Voice error: ${event.error}`);
+                addMessage("system", `> Voice error: ${event.error}`);
             }
         };
     }
 
     voiceBtn.addEventListener("click", () => {
         if (!recognition) {
-            addMessage("system", "Voice input is not supported in this browser.");
+            addMessage("system", "> Voice input not supported in this browser.");
             return;
         }
         if (isRecording) {
@@ -278,7 +336,7 @@
     toggleKey.addEventListener("click", () => {
         const isPassword = apiKeyInput.type === "password";
         apiKeyInput.type = isPassword ? "text" : "password";
-        toggleKey.innerHTML = isPassword ? "&#128064;" : "&#128065;";
+        toggleKey.textContent = isPassword ? "🔒" : "👁";
     });
 
     saveKeyBtn.addEventListener("click", async () => {
@@ -321,12 +379,11 @@
     clearMemoryBtn.addEventListener("click", async () => {
         try {
             await api("/api/memory/clear");
-            // Clear chat UI except  first system message
             const msgs = chatMessages.querySelectorAll(".message:not(:first-child)");
             msgs.forEach((m) => m.remove());
-            addMessage("system", "Memory cleared.");
+            addMessage("system", "> Memory cleared.");
         } catch (err) {
-            addMessage("error", err.message);
+            addMessage("error", "> " + err.message);
         }
     });
 
@@ -375,19 +432,17 @@
 
     async function init() {
         if (!initData) {
-            addMessage("system", "Open this app via Telegram Mini App button.");
+            addMessage("system", "> Open this app via Telegram Mini App button.");
             return;
         }
         try {
             const auth = await api("/api/auth");
             hasKey = auth.has_key;
 
-            // Update token badge
             if (auth.usage) {
                 updateTokenBadge(auth.usage.monthly, auth.usage.monthly_limit);
             }
 
-            // Restore memory to chat
             if (auth.memory && auth.memory.length > 0) {
                 auth.memory.forEach((msg) => {
                     addMessage(msg.role, msg.content);
@@ -395,10 +450,10 @@
             }
 
             if (!hasKey) {
-                addMessage("system", "Configure your OpenRouter API key in Settings to start chatting.");
+                addMessage("system", "> Configure your OpenRouter API key in Settings to start chatting.");
             }
         } catch (err) {
-            addMessage("error", "Auth failed: " + err.message);
+            addMessage("error", "> Auth failed: " + err.message);
         }
     }
 
