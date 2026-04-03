@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: shodan-miniapp
+    runtime: docker
+    plan: free
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: PORT
+        value: "8091"
+      - key: DATA_DIR
+        value: "/tmp/shodan-data"

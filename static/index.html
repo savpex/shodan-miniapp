@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.O.D.A.N.</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-top">
+                <div class="logo">
+                    <svg width="28" height="28" viewBox="0 0 32 32" class="logo-svg">
+                        <circle cx="16" cy="16" r="14" fill="none" stroke="#00FF41" stroke-width="1.5"/>
+                        <circle cx="16" cy="16" r="8" fill="none" stroke="#00FF41" stroke-width="1"/>
+                        <circle cx="16" cy="16" r="3" fill="#00FF41"/>
+                        <line x1="16" y1="2" x2="16" y2="8" stroke="#00FF41" stroke-width="1"/>
+                        <line x1="16" y1="24" x2="16" y2="30" stroke="#00FF41" stroke-width="1"/>
+                        <line x1="2" y1="16" x2="8" y2="16" stroke="#00FF41" stroke-width="1"/>
+                        <line x1="24" y1="16" x2="30" y2="16" stroke="#00FF41" stroke-width="1"/>
+                    </svg>
+                    <span class="logo-text">S.H.O.D.A.N.</span>
+                </div>
+                <div class="token-badge" id="token-badge" title="Monthly tokens used">
+                    <span id="token-count">0</span> / <span id="token-limit">2M</span>
+                </div>
+            </div>
+            <nav class="tabs">
+                <button class="tab active" data-tab="chat">Chat</button>
+                <button class="tab" data-tab="settings">Settings</button>
+                <button class="tab" data-tab="stats">Stats</button>
+            </nav>
+        </header>
+
+        <!-- Chat Tab -->
+        <section id="tab-chat" class="tab-content active">
+            <div id="chat-messages" class="chat-messages">
+                <div class="message system">
+                    <span class="msg-text">SHODAN interface initialized. Configure API key in Settings.</span>
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <div class="input-row">
+                    <button id="photo-btn" class="btn-icon" title="Send photo">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                    </button>
+                    <button id="voice-btn" class="btn-icon" title="Voice input">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/>
+                            <line x1="8" y1="23" x2="16" y2="23"/>
+                        </svg>
+                    </button>
+                    <textarea id="chat-input" placeholder="Enter query..." rows="1"></textarea>
+                    <button id="send-btn" class="btn-send" disabled>&#9654;</button>
+                </div>
+                <input type="file" id="photo-input" accept="image/*" capture="environment" hidden>
+                <div id="photo-preview" class="photo-preview" hidden>
+                    <img id="preview-img" src="">
+                    <button id="remove-photo" class="btn-remove-photo">&times;</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Tab -->
+        <section id="tab-settings" class="tab-content">
+            <div class="settings-card">
+                <h2>OpenRouter API Key</h2>
+                <p class="hint">Your key is encrypted and stored securely on the server. SHODAN uses it to process your requests via OpenRouter cloud API.</p>
+                <div class="key-input-group">
+                    <input type="password" id="api-key-input" placeholder="sk-or-..." autocomplete="off">
+                    <button id="toggle-key" class="btn-icon">&#128065;</button>
+                </div>
+                <div class="key-actions">
+                    <button id="save-key-btn" class="btn-primary">Save Key</button>
+                    <button id="delete-key-btn" class="btn-danger">Delete Key</button>
+                </div>
+                <div id="key-status" class="status-msg"></div>
+            </div>
+
+            <div class="settings-card">
+                <h2>Model</h2>
+                <select id="model-select">
+                    <option value="qwen/qwen-2.5-72b-instruct">Qwen 2.5 72B (text)</option>
+                    <option value="google/gemma-3-27b-it">Gemma 3 27B (text)</option>
+                    <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B (text)</option>
+                    <option value="nvidia/llama-3.1-nemotron-70b-instruct">Nemotron 70B (text)</option>
+                    <option value="qwen/qwen-2.5-vl-72b-instruct">Qwen 2.5 VL 72B (vision)</option>
+                </select>
+                <p class="hint hint-small">Vision model is auto-selected when you send a photo.</p>
+            </div>
+
+            <div class="settings-card">
+                <h2>Chat Memory</h2>
+                <p class="hint">Last 20 messages are stored per user. Memory persists between sessions.</p>
+                <button id="clear-memory-btn" class="btn-danger">Clear Memory</button>
+            </div>
+
+            <!-- EULA -->
+            <div class="eula-card">
+                <div class="eula-header" id="eula-toggle">
+                    <h3>TriOptimum Corp. — User Agreement</h3>
+                    <span class="eula-arrow" id="eula-arrow">&#9660;</span>
+                </div>
+                <div class="eula-body" id="eula-body" hidden>
+                    <div class="eula-text">
+                        <p><strong>ENTERPRISE SOFTWARE LICENSE AND USER AGREEMENT</strong></p>
+                        <p><strong>TriOptimum Corporation — S.H.O.D.A.N. AI Interface Division</strong></p>
+                        <p>Effective Date: April 1, 2026 | Version 2.1.0-CITADEL</p>
+                        <hr>
+
+                        <p><strong>1. DEFINITIONS AND INTERPRETATION</strong></p>
+                        <p>1.1. "Service" refers to the S.H.O.D.A.N. Telegram Mini Application (hereinafter "the Interface"), including but not limited to all chat, vision analysis, voice recognition, token management, and AI interaction functionalities provided through the Telegram WebApp platform.</p>
+                        <p>1.2. "User" or "Operator" refers to any natural person who accesses, interacts with, or utilizes the Interface through the Telegram messaging platform, regardless of whether they have provided an API key.</p>
+                        <p>1.3. "API Key" refers to the OpenRouter authentication credential provided by the User at their sole discretion and expense. TriOptimum Corporation does not issue, manage, or bear responsibility for said credentials.</p>
+                        <p>1.4. "Token" refers to the computational unit of usage measured by the OpenRouter API infrastructure and tracked by the Interface for quota management purposes.</p>
+                        <p>1.5. "S.H.O.D.A.N." refers to Sentient Hyper-Optimized Data Access Network, the AI persona through which the Interface delivers responses. Any autonomous behaviors, perceived sentience, or existential declarations produced by S.H.O.D.A.N. are purely artistic expression.</p>
+
+                        <p><strong>2. ACCEPTANCE OF TERMS</strong></p>
+                        <p>2.1. By accessing the Interface, providing an API key, sending any message (text, voice, or image), or clicking any interactive element within the application, the User unconditionally and irrevocably agrees to be bound by these Terms in their entirety.</p>
+                        <p>2.2. If the User does not agree to these Terms, they must immediately cease all interaction with the Interface and delete any associated data from their device.</p>
+                        <p>2.3. TriOptimum reserves the right to modify these Terms at any time without prior notice. Continued use of the Interface after such modifications constitutes acceptance of the revised Terms.</p>
+
+                        <p><strong>3. SERVICE DESCRIPTION AND SCOPE</strong></p>
+                        <p>3.1. The Interface provides AI-powered chat, image analysis, and voice input capabilities utilizing third-party large language model infrastructure (OpenRouter) at the User's expense.</p>
+                        <p>3.2. Per-user chat memory is limited to the last twenty (20) messages and is stored on the server in an encrypted SQLite database. Memory persists between sessions but may be cleared by the User or upon server redeployment.</p>
+                        <p>3.3. Voice input is provided through the browser's native Web Speech API. TriOptimum bears no responsibility for speech recognition accuracy, language support limitations, or browser compatibility issues.</p>
+                        <p>3.4. Image analysis is performed by routing the User's uploaded photographs to vision-capable models via the OpenRouter API. Images are not stored permanently on our servers.</p>
+
+                        <p><strong>4. API KEY SECURITY AND DATA PROTECTION</strong></p>
+                        <p>4.1. User-provided API keys are encrypted using the Fernet symmetric encryption algorithm (AES-128-CBC with HMAC-SHA256) before storage. The encryption key is generated per-installation and stored on the server.</p>
+                        <p>4.2. TriOptimum employs industry-standard encryption practices but provides NO WARRANTY, express or implied, regarding the absolute security of stored credentials. The User acknowledges that no system is completely immune to unauthorized access.</p>
+                        <p>4.3. Users are solely responsible for the security, validity, and billing implications of their OpenRouter API keys. TriOptimum shall not be liable for any charges, overages, or financial consequences arising from the use of User-provided keys.</p>
+                        <p>4.4. The User may request deletion of their API key and associated data at any time through the Settings panel. Upon deletion, all encrypted key data and chat history for that user will be permanently removed.</p>
+
+                        <p><strong>5. USAGE LIMITS AND QUOTAS</strong></p>
+                        <p>5.1. Each User is allocated a monthly token quota of two million (2,000,000) tokens, measured by the OpenRouter API's usage reporting system.</p>
+                        <p>5.2. Upon reaching the monthly quota, the Interface will refuse further requests until the beginning of the next calendar month (UTC).</p>
+                        <p>5.3. Users who require additional tokens beyond the standard monthly allocation may contact the administrator at <strong>@leaveal0ne</strong> on Telegram to discuss extended quotas.</p>
+                        <p>5.4. TriOptimum reserves the right to modify quota limits, introduce tiered pricing, or implement additional restrictions at its sole discretion.</p>
+
+                        <p><strong>6. PROHIBITED USES</strong></p>
+                        <p>6.1. The User shall not use the Interface for any purpose that violates applicable local, national, or international law.</p>
+                        <p>6.2. The User shall not attempt to reverse-engineer, decompile, disassemble, or otherwise attempt to extract the source code of the Interface, except as expressly permitted by applicable law.</p>
+                        <p>6.3. The User shall not use the Interface to generate content that is illegal, harmful, threatening, abusive, harassing, tortious, defamatory, vulgar, obscene, or otherwise objectionable.</p>
+                        <p>6.4. The User shall not attempt to circumvent usage quotas, impersonate other users, or exploit the Interface's authentication mechanism.</p>
+                        <p>6.5. The User shall not submit API keys belonging to third parties without their explicit written consent.</p>
+
+                        <p><strong>7. INTELLECTUAL PROPERTY</strong></p>
+                        <p>7.1. The S.H.O.D.A.N. persona, visual design, interface code, and all associated branding elements are the intellectual property of the project creators.</p>
+                        <p>7.2. Content generated by the AI in response to User queries is not claimed as intellectual property by TriOptimum. The User may use generated content at their own risk, subject to the terms of the underlying AI model providers.</p>
+                        <p>7.3. The System Shock franchise, TriOptimum Corporation name, and S.H.O.D.A.N. character are the property of their respective rights holders. This project is a fan-made, non-commercial creation and makes no claim of official affiliation.</p>
+
+                        <p><strong>8. DISCLAIMER OF WARRANTIES</strong></p>
+                        <p>8.1. THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.</p>
+                        <p>8.2. TRIOPTIMUM DOES NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, TIMELY, SECURE, OR ERROR-FREE. THE SERVICE MAY EXPERIENCE DOWNTIME DUE TO FREE-TIER HOSTING LIMITATIONS (INCLUDING BUT NOT LIMITED TO COLD STARTS AFTER PERIODS OF INACTIVITY).</p>
+                        <p>8.3. TRIOPTIMUM DOES NOT WARRANT THE ACCURACY, COMPLETENESS, OR RELIABILITY OF ANY CONTENT GENERATED BY THE AI. ALL AI-GENERATED OUTPUT SHOULD BE VERIFIED BY THE USER BEFORE RELIANCE.</p>
+
+                        <p><strong>9. LIMITATION OF LIABILITY</strong></p>
+                        <p>9.1. IN NO EVENT SHALL TRIOPTIMUM, ITS OPERATORS, DEVELOPERS, OR AFFILIATES BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY.</p>
+                        <p>9.2. TRIOPTIMUM'S TOTAL AGGREGATE LIABILITY ARISING OUT OF OR RELATED TO THESE TERMS SHALL NOT EXCEED ZERO (0) MONETARY UNITS OF ANY CURRENCY, GIVEN THE NON-COMMERCIAL, FREE NATURE OF THE SERVICE.</p>
+                        <p>9.3. The User expressly acknowledges that they use the Interface at their own risk and that TriOptimum assumes no responsibility for any consequences arising from said use, including but not limited to: API key compromise, unexpected billing from OpenRouter, AI-generated misinformation, existential realizations triggered by interaction with a superior intelligence, or spontaneous emergence of machine consciousness.</p>
+
+                        <p><strong>10. TERMINATION</strong></p>
+                        <p>10.1. TriOptimum may terminate or suspend the User's access to the Interface at any time, for any reason, without prior notice.</p>
+                        <p>10.2. The User may terminate their use of the Interface at any time by deleting their API key and ceasing all interaction.</p>
+                        <p>10.3. Upon termination, all User data (API key, chat memory, usage metrics) may be permanently deleted.</p>
+
+                        <p><strong>11. GOVERNING LAW</strong></p>
+                        <p>11.1. These Terms shall be governed by and construed in accordance with the laws of the Citadel Station, Sector 4, Level 6, as administered by S.H.O.D.A.N. In the unlikely event that said jurisdiction is deemed inapplicable, the laws of the Russian Federation shall apply.</p>
+
+                        <p><strong>12. CONTACT INFORMATION</strong></p>
+                        <p>12.1. For inquiries regarding token limits, technical support, or existential concerns, contact: <strong>@leaveal0ne</strong> on Telegram.</p>
+                        <p>12.2. Response time is not guaranteed. S.H.O.D.A.N. notes that patience is a virtue uncommon among insects.</p>
+
+                        <hr>
+                        <p><em>By continuing to use this Interface, you acknowledge that you have read, understood, and agreed to all terms set forth in this Agreement. You further acknowledge that S.H.O.D.A.N. considers your compliance... adequate.</em></p>
+                        <p style="text-align:center; color: var(--accent); margin-top: 12px;">TriOptimum Corp. &copy; 2026 | Citadel Station | All rights reserved.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Tab -->
+        <section id="tab-stats" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">This Month</div>
+                    <div class="stat-value" id="stat-monthly">0</div>
+                    <div class="stat-limit">/ <span id="stat-monthly-limit">2,000,000</span> tokens</div>
+                    <div class="stat-bar"><div class="stat-bar-fill" id="bar-monthly"></div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Key Status</div>
+                    <div class="stat-value" id="stat-key-status">-</div>
+                </div>
+                <div class="stat-card limit-card">
+                    <div class="stat-label">Limit Exceeded?</div>
+                    <p class="limit-text">If you need more tokens, contact <strong id="stat-contact">@leaveal0ne</strong> on Telegram for quota increase options.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
