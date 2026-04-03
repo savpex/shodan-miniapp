@@ -409,10 +409,21 @@ def create_app() -> web.Application:
 
     app.middlewares.append(cors_middleware)
 
-    # Static files (frontend)
+    # Static files (frontend) with no-cache headers
     static_dir = Path(__file__).parent / "static"
     if static_dir.exists():
-        app.router.add_static("/app", static_dir, name="static")
+        app.router.add_static("/app", static_dir, name="static",
+                              append_version=False)
+
+    @web.middleware
+    async def no_cache_static(request, handler):
+        resp = await handler(request)
+        if request.path.startswith("/app/"):
+            resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            resp.headers["Pragma"] = "no-cache"
+            resp.headers["Expires"] = "0"
+        return resp
+    app.middlewares.append(no_cache_static)
 
     # API
     app.router.add_post("/api/auth", handle_auth)
