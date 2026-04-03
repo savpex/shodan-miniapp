@@ -349,11 +349,10 @@ async def handle_chat(request: web.Request) -> web.Response:
         messages.append({"role": "user", "content": search_context + user_message})
         model = data.get("model", _DEFAULT_MODEL)
 
-    # Build request payload
+    # Build request payload — no max_tokens cap, let model generate fully
     request_body = {
         "model": model,
         "messages": messages,
-        "max_tokens": 2048,
         "temperature": 0.8,
     }
     if use_think:
